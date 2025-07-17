@@ -10,10 +10,20 @@
 // Generated UUIDs for the service and characteristics
 #define SERVICE_UUID "8bc7b016-7196-4f95-a33c-cc541b4509a9"
 
-// Duration of the scan in seconds
-int scanTime = 20; 
-int rssiThreshold = -70; 
+
 BLEScan* pBLEScan;
+BLEAdvertisementData adData;
+BLEAdvertising* pAdvertising;
+
+// Duration of the scan in seconds
+unsigned long myTime;
+unsigned long currentTime;
+const unsigned long interval = 10000;
+uint8_t manufacturerData[2];
+int scanTime = 20; 
+int rssiThreshold = -70;
+String mfgData = ""; 
+
 
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
   void onResult(BLEAdvertisedDevice advertisedDevice) {
@@ -42,8 +52,22 @@ void setup() {
 
 
   // Start advertising
-  BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
+
+  // Generate random manufacturer data (2 bytes)
+  manufacturerData[0] = random(0, 256);
+  manufacturerData[1] = random(0, 256);
+  
+  // Create manufacturer data string
+  mfgData += (char)manufacturerData[0];
+  mfgData += (char)manufacturerData[1];
+  
+  // Set manufacturer data (0x4C00 is Apple's company ID - use for testing)
+  adData = BLEAdvertisementData();
+  adData.setManufacturerData(mfgData);
+  pAdvertising->setAdvertisementData(adData);
+
   pAdvertising->start();
   Serial.println("BLE Advertisement started!");
 
@@ -52,16 +76,32 @@ void setup() {
   pBLEScan->setActiveScan(true); // Active scan retrieves more data, but uses more power
   pBLEScan->setInterval(100);
   pBLEScan->setWindow(99);  // Window <= Interval
+
+  currentTime = millis();
 }
 
 void loop() {
-  Serial.println("Scanning...");
-  BLEScanResults* foundDevices = pBLEScan->start(scanTime, false);
-  Serial.print("Devices found: ");
-  Serial.println(foundDevices->getCount());
-  Serial.println("Scan done!");
-  
-  pBLEScan->clearResults(); // Delete results to free memory
-  delay(5000); // Wait before scanning again
+  myTime = millis();
+  if(myTime - currentTime >= interval){
+    pAdvertising->stop();
+    //get random data
+    manufacturerData[0] = random(0, 256);
+    manufacturerData[1] = random(0, 256);
 
+    //clear mfgData
+    mfgData = "";
+    mfgData += (char)manufacturerData[0];
+    mfgData += (char)manufacturerData[1];
+    adData.setManufacturerData(mfgData);
+    pAdvertising->setAdvertisementData(adData);
+    pAdvertising->start();
+
+    Serial.println("Scanning...");
+    BLEScanResults* foundDevices = pBLEScan->start(scanTime, false);
+    Serial.print("Devices found: ");
+    Serial.println(foundDevices->getCount());
+    Serial.println("Scan done!");
+    pBLEScan->clearResults(); // Delete results to free memory
+    currentTime = myTime;
+  }
 }
