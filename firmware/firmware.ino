@@ -1,11 +1,20 @@
 #include "BLEDevice.h"
 #include "BLEServer.h"
 #include "BLEUtils.h"
-#include "BLE2902.h"  
 #include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
+#include "SPIFFS.h"
+#include <WiFi.h>
+#include <HTTPClient.h>
 
 // Final Project
+
+// WiFi credentials
+const char* ssid = "";
+const char* password = "";
+
+// Server endpoint
+const char* serverURL = "http://192.168.137.1:8080";
 
 // Generated UUIDs for the service and characteristics
 #define SERVICE_UUID        "8bc7b016-7196-4f95-a33c-cc541b4509a9"
@@ -15,20 +24,210 @@ int scanTime = 20;
 int rssiThreshold = -70; 
 BLEScan* pBLEScan;
 
+// Logging variables
+int logCount = 0;
+const int maxLogs = 5;
+const char* csvFilePath = "/data.csv";
+
+
+
+void logDeviceToCSV(BLEAdvertisedDevice device) {
+  File file = SPIFFS.open(csvFilePath, FILE_APPEND);
+  if (!file) {
+    Serial.println("Failed to open file for writing");
+    return;
+}
+  
+  // Get current timestamp (millis since boot)
+  unsigned long timestamp = millis();
+  
+  // Get service UUIDs if available
+  String serviceUUIDs = "None";
+  if (device.haveServiceUUID()) {
+    serviceUUIDs = device.getServiceUUID().toString().c_str();
+  }
+  
+  // Create CSV row: timestamp, device_address, rssi, name, service_uuid
+  String csvRow = String(timestamp) + "," + 
+                  String(device.getAddress().toString().c_str()) + "," +
+                  String(device.getRSSI()) + "," +
+                  (device.haveName() ? device.getName().c_str() : "Unknown") + "," +
+                  serviceUUIDs + "\n";
+  
+  file.print(csvRow);
+  file.close();
+  
+  logCount++;
+  Serial.println("Device logged to CSV. Count: " + String(logCount));
+  Serial.println("Service UUID: " + serviceUUIDs);
+  
+}
+
+
+
+void clearCSVFile() {
+  if (SPIFFS.remove(csvFilePath)) {
+    Serial.println("CSV file cleared successfully");
+    
+    // Re-create file with headers
+    File file = SPIFFS.open(csvFilePath, FILE_WRITE);
+    if (file) {
+      file.println("timestamp,device_address,rssi,device_name,service_uuid");
+      file.close();
+      Serial.println("CSV file recreated with headers");
+    } else {
+      Serial.println("Failed to recreate CSV file with headers");
+    }
+  } else {
+    Serial.println("Failed to clear CSV file");
+  }
+}
+
+void printCSVContents() {
+  Serial.println("\n--- Current CSV File Contents ---");
+  
+  File file = SPIFFS.open(csvFilePath, FILE_READ);
+  if (!file) {
+    Serial.println("Failed to open CSV file for reading");
+    return;
+  }
+  
+  if (file.size() == 0) {
+    Serial.println("CSV file is empty");
+    file.close();
+    return;
+  }
+  
+  // Print file contents line by line
+  while (file.available()) {
+    String line = file.readStringUntil('\n');
+    Serial.println(line);
+  }
+  
+  file.close();
+  Serial.println("--- End of CSV Contents ---\n");
+}
+
+bool connectToWiFi() {
+  Serial.println("Connecting to WiFi...");
+  WiFi.begin(ssid, password);
+  
+  int attempts = 0;
+  Serial.println(WiFi.status());
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    delay(1000);
+    Serial.print(".");
+    attempts++;
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("");
+    Serial.println("WiFi connected!");
+    Serial.println("IP address: " + WiFi.localIP().toString());
+    return true;
+  } else {
+    Serial.println("");
+    Serial.println("WiFi connection failed!");
+    return false;
+  }
+}
+
+void uploadDataToServer() {
+  // Connect to WiFi
+  if (!connectToWiFi()) {
+    Serial.println("Failed to connect to WiFi. Upload cancelled.");
+    return;
+  }
+  
+  // Read CSV file
+  File file = SPIFFS.open(csvFilePath, FILE_READ);
+  if (!file) {
+    Serial.println("Failed to open CSV file for reading");
+    return;
+  }
+  
+  String csvData = file.readString();
+  file.close();
+  
+  if (csvData.length() == 0) {
+    Serial.println("No data to upload");
+    return;
+  }
+  
+  Serial.println("Uploading CSV data to server...");
+  
+  // Send data to server
+  HTTPClient http;
+  http.begin(serverURL);
+  
+  // Add HTTP headers
+  http.addHeader("Content-Type", "text/csv");
+  http.addHeader("Content-Length", String(csvData.length()));
+  http.addHeader("User-Agent", "ESP32-BLE-ContactTracer/1.0");
+  http.addHeader("X-Device-ID", String(ESP.getEfuseMac(), HEX));
+  http.addHeader("X-Data-Type", "contact-trace");
+  http.addHeader("X-Timestamp", String(millis()));
+  
+  Serial.println("Sending " + String(csvData.length()) + " bytes of CSV data...");
+  
+  int httpResponseCode = http.POST(csvData);
+  
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+    Serial.println("Upload successful! Response code: " + String(httpResponseCode));
+    Serial.println("Server response: " + response);
+  } else {
+    Serial.println("Upload failed. Response code: " + String(httpResponseCode));
+  }
+  
+  http.end();
+  
+  // Disconnect WiFi to save power
+  WiFi.disconnect();
+  Serial.println("WiFi disconnected");
+}
+
+void initializeCSVFile() {
+  // Check if file exists, if not create with header
+  if (!SPIFFS.exists(csvFilePath)) {
+    File file = SPIFFS.open(csvFilePath, FILE_WRITE);
+    if (file) {
+      file.println("timestamp,device_address,rssi,device_name,service_uuid");
+      file.close();
+      Serial.println("CSV file created with header");
+    } else {
+      Serial.println("Failed to create CSV file");
+    }
+  }
+}
+
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
   void onResult(BLEAdvertisedDevice advertisedDevice) {
     int rssi = advertisedDevice.getRSSI();
-      if (rssi > rssiThreshold) {
-        Serial.print("Device found: ");
-        Serial.println(advertisedDevice.toString().c_str());
-      }
+    if (rssi > rssiThreshold) {
+      Serial.print("Device found: ");
+      Serial.println(advertisedDevice.toString().c_str());
+      
+      // Log to CSV file
+      logDeviceToCSV(advertisedDevice);
+    }
   }
 };
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  Serial.println("Starting BLE Broadcaster...");
+  Serial.println("Starting BLE Contact Tracer...");
+
+  // Initialize SPIFFS
+  if (!SPIFFS.begin(true)) {
+    Serial.println("An error occurred while mounting SPIFFS");
+    return;
+  }
+  Serial.println("SPIFFS mounted successfully");
+  
+  // Initialize CSV file
+  initializeCSVFile();
 
   // Generate device name
   String deviceName = "BLE Contact Tracer";
@@ -38,7 +237,6 @@ void setup() {
 
   // Create BLE Server
   BLEServer* pServer = BLEDevice::createServer();
-
 
   // Start advertising
   BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
@@ -60,7 +258,15 @@ void loop() {
   Serial.println(foundDevices->getCount());
   Serial.println("Scan done!");
   
-  pBLEScan->clearResults(); // Delete results to free memory
-  delay(5000); // Wait before scanning again
+  // Print current CSV file contents
+  printCSVContents();
+  
+  // Upload to Server 
+  uploadDataToServer();
 
+  // Clear data 
+  clearCSVFile();
+  pBLEScan->clearResults(); // Delete results to free memory
+  
+  delay(10000); // Wait before scanning again
 }
