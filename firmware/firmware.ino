@@ -55,17 +55,10 @@ void setup() {
   pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
 
-  // Generate random manufacturer data (2 bytes)
-  manufacturerData[0] = random(0, 256);
-  manufacturerData[1] = random(0, 256);
-  
-  // Create manufacturer data string
-  mfgData += (char)manufacturerData[0];
-  mfgData += (char)manufacturerData[1];
-  
+  String random_mfg = randomize_manufacturer_data();
   // Set manufacturer data (0x4C00 is Apple's company ID - use for testing)
   adData = BLEAdvertisementData();
-  adData.setManufacturerData(mfgData);
+  adData.setManufacturerData(random_mfg);
   pAdvertising->setAdvertisementData(adData);
 
   pAdvertising->start();
@@ -80,10 +73,7 @@ void setup() {
   currentTime = millis();
 }
 
-void loop() {
-  myTime = millis();
-  if(myTime - currentTime >= interval){
-    pAdvertising->stop();
+String randomize_manufacturer_data(){
     //get random data
     manufacturerData[0] = random(0, 256);
     manufacturerData[1] = random(0, 256);
@@ -92,7 +82,16 @@ void loop() {
     mfgData = "";
     mfgData += (char)manufacturerData[0];
     mfgData += (char)manufacturerData[1];
-    adData.setManufacturerData(mfgData);
+
+    return mfgData;
+}
+
+void loop() {
+  myTime = millis();
+  if(myTime - currentTime >= interval){
+    pAdvertising->stop();
+    String random_mfg = randomize_manufacturer_data();
+    adData.setManufacturerData(random_mfg);
     pAdvertising->setAdvertisementData(adData);
     pAdvertising->start();
 
