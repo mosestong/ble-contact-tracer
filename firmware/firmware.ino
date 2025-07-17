@@ -17,12 +17,22 @@ const char* password = "";
 const char* serverURL = "http://192.168.137.1:8080";
 
 // Generated UUIDs for the service and characteristics
-#define SERVICE_UUID        "8bc7b016-7196-4f95-a33c-cc541b4509a9"
+#define SERVICE_UUID "8bc7b016-7196-4f95-a33c-cc541b4509a9"
+
+
+BLEScan* pBLEScan;
+BLEAdvertisementData adData;
+BLEAdvertising* pAdvertising;
 
 // Duration of the scan in seconds
+unsigned long myTime;
+unsigned long currentTime;
+const unsigned long interval = 10000;
+uint8_t manufacturerData[2];
 int scanTime = 20; 
-int rssiThreshold = -70; 
-BLEScan* pBLEScan;
+int rssiThreshold = -70;
+String mfgData = ""; 
+
 
 // Logging variables
 int logCount = 0;
@@ -204,7 +214,8 @@ void initializeCSVFile() {
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
   void onResult(BLEAdvertisedDevice advertisedDevice) {
     int rssi = advertisedDevice.getRSSI();
-    if (rssi > rssiThreshold) {
+    BLEUUID found_service_UUID = advertisedDevice.getServiceUUID();
+    if (rssi > rssiThreshold and found_service_UUID.toString() == SERVICE_UUID) {
       Serial.print("Device found: ");
       Serial.println(advertisedDevice.toString().c_str());
       
@@ -239,8 +250,15 @@ void setup() {
   BLEServer* pServer = BLEDevice::createServer();
 
   // Start advertising
-  BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
+
+  String random_mfg = randomize_manufacturer_data();
+  // Set manufacturer data (0x4C00 is Apple's company ID - use for testing)
+  adData = BLEAdvertisementData();
+  adData.setManufacturerData(random_mfg);
+  pAdvertising->setAdvertisementData(adData);
+
   pAdvertising->start();
   Serial.println("BLE Advertisement started!");
 
@@ -249,6 +267,21 @@ void setup() {
   pBLEScan->setActiveScan(true); // Active scan retrieves more data, but uses more power
   pBLEScan->setInterval(100);
   pBLEScan->setWindow(99);  // Window <= Interval
+
+  currentTime = millis();
+}
+
+String randomize_manufacturer_data(){
+    //get random data
+    manufacturerData[0] = random(0, 256);
+    manufacturerData[1] = random(0, 256);
+
+    //clear mfgData
+    mfgData = "";
+    mfgData += (char)manufacturerData[0];
+    mfgData += (char)manufacturerData[1];
+
+    return mfgData;
 }
 
 void loop() {
