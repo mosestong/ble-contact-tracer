@@ -8,7 +8,7 @@
 // Final Project
 
 // Generated UUIDs for the service and characteristics
-#define SERVICE_UUID        "8bc7b016-7196-4f95-a33c-cc541b4509a9"
+#define SERVICE_UUID "8bc7b016-7196-4f95-a33c-cc541b4509a9"
 
 // Duration of the scan in seconds
 int scanTime = 20; 
@@ -18,7 +18,8 @@ BLEScan* pBLEScan;
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
   void onResult(BLEAdvertisedDevice advertisedDevice) {
     int rssi = advertisedDevice.getRSSI();
-      if (rssi > rssiThreshold) {
+    BLEUUID found_service_UUID = advertisedDevice.getServiceUUID();
+      if (rssi > rssiThreshold and found_service_UUID.toString() == SERVICE_UUID) {
         Serial.print("Device found: ");
         Serial.println(advertisedDevice.toString().c_str());
       }
