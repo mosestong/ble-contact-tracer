@@ -285,21 +285,29 @@ String randomize_manufacturer_data(){
 }
 
 void loop() {
-  Serial.println("Scanning...");
-  BLEScanResults* foundDevices = pBLEScan->start(scanTime, false);
-  Serial.print("Devices found: ");
-  Serial.println(foundDevices->getCount());
-  Serial.println("Scan done!");
-  
-  // Print current CSV file contents
-  printCSVContents();
-  
-  // Upload to Server 
-  uploadDataToServer();
+  myTime = millis();
+  if(myTime - currentTime >= interval){
+    pAdvertising->stop();
+    String random_mfg = randomize_manufacturer_data();
+    adData.setManufacturerData(random_mfg);
+    pAdvertising->setAdvertisementData(adData);
+    pAdvertising->start();
 
-  // Clear data 
-  clearCSVFile();
-  pBLEScan->clearResults(); // Delete results to free memory
-  
-  delay(10000); // Wait before scanning again
+    Serial.println("Scanning...");
+    BLEScanResults* foundDevices = pBLEScan->start(scanTime, false);
+    Serial.print("Devices found: ");
+    Serial.println(foundDevices->getCount());
+    Serial.println("Scan done!");
+      // Print current CSV file contents
+    printCSVContents();
+    
+    // Upload to Server 
+    uploadDataToServer();
+
+    // Clear data 
+    clearCSVFile();
+    pBLEScan->clearResults(); // Delete results to free memory
+    currentTime = myTime;
+  }
+
 }
