@@ -4,6 +4,7 @@ import os
 from io import BytesIO
 from datetime import datetime
 import pandas as pd
+import time
 
 PORT = 8080
 UPLOAD_DIR = "uploads"
@@ -18,12 +19,17 @@ class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
     Custom HTTP request handler to process POST requests for file uploads.
     """
     def do_POST(self):
+        sent_time = int(self.headers.get("X-Timestamp"))
         content_length = int(self.headers.get('Content-Length', 0))
         if content_length == 0:
             self.send_response(400)
             self.end_headers()
             self.wfile.write(b"No data received")
             return
+        
+        # Assumes unix epoch time in seconds
+        if not sent_time is None:
+            print("Air time:", time.time() - sent_time)
 
         # Read the POST data from the request
         post_data = self.rfile.read(content_length)
