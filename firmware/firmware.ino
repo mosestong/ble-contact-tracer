@@ -10,11 +10,11 @@
 // Final Project
 
 // WiFi credentials
-const char* ssid = "";
-const char* password = "";
+const char* ssid = "TOBI 1440";
+const char* password = "=813j2G0";
 
 // Server endpoint
-const char* serverURL = "http://192.168.137.1:8080";
+const char* serverURL = "http://192.168.137.1:8081";
 
 // Generated UUIDs for the service and characteristics
 #define SERVICE_UUID "8bc7b016-7196-4f95-a33c-cc541b4509a9"
@@ -57,12 +57,26 @@ void logDeviceToCSV(BLEAdvertisedDevice device) {
     serviceUUIDs = device.getServiceUUID().toString().c_str();
   }
   
-  // Create CSV row: timestamp, device_address, rssi, name, service_uuid
+  // Get manufacturer data if available
+  String manufacturerDataStr = "None";
+  if (device.haveManufacturerData()) {
+    String mfgData = device.getManufacturerData();
+    manufacturerDataStr = "";
+    for (int i = 0; i < mfgData.length(); i++) {
+      if (i > 0) manufacturerDataStr += ":";
+      if ((uint8_t)mfgData[i] < 16) manufacturerDataStr += "0"; // Add leading zero for single hex digits
+      manufacturerDataStr += String((uint8_t)mfgData[i], HEX);
+    }
+    manufacturerDataStr.toUpperCase(); // Convert to uppercase for consistency
+  }
+  
+  // Create CSV row: timestamp, device_address, rssi, name, service_uuid, manufacturer_data
   String csvRow = String(timestamp) + "," + 
                   String(device.getAddress().toString().c_str()) + "," +
                   String(device.getRSSI()) + "," +
                   (device.haveName() ? device.getName().c_str() : "Unknown") + "," +
-                  serviceUUIDs + "\n";
+                  serviceUUIDs + "," +
+                  manufacturerDataStr + "\n";
   
   file.print(csvRow);
   file.close();
@@ -70,6 +84,7 @@ void logDeviceToCSV(BLEAdvertisedDevice device) {
   logCount++;
   Serial.println("Device logged to CSV. Count: " + String(logCount));
   Serial.println("Service UUID: " + serviceUUIDs);
+  Serial.println("Manufacturer Data: " + manufacturerDataStr);
   
 }
 
@@ -82,7 +97,7 @@ void clearCSVFile() {
     // Re-create file with headers
     File file = SPIFFS.open(csvFilePath, FILE_WRITE);
     if (file) {
-      file.println("timestamp,device_address,rssi,device_name,service_uuid");
+      file.println("timestamp,device_address,rssi,device_name,service_uuid,manufacturer_data");
       file.close();
       Serial.println("CSV file recreated with headers");
     } else {
@@ -186,6 +201,8 @@ void uploadDataToServer() {
     String response = http.getString();
     Serial.println("Upload successful! Response code: " + String(httpResponseCode));
     Serial.println("Server response: " + response);
+    // Clear data 
+    clearCSVFile();
   } else {
     Serial.println("Upload failed. Response code: " + String(httpResponseCode));
   }
@@ -202,7 +219,7 @@ void initializeCSVFile() {
   if (!SPIFFS.exists(csvFilePath)) {
     File file = SPIFFS.open(csvFilePath, FILE_WRITE);
     if (file) {
-      file.println("timestamp,device_address,rssi,device_name,service_uuid");
+      file.println("timestamp,device_address,rssi,device_name,service_uuid,manufacturer_data");
       file.close();
       Serial.println("CSV file created with header");
     } else {
@@ -248,6 +265,12 @@ void setup() {
 
   // Create BLE Server
   BLEServer* pServer = BLEDevice::createServer();
+
+  // Create the service
+  BLEService* pService = pServer->createService(SERVICE_UUID);
+  
+  // Start the service
+  pService->start();
 
   // Start advertising
   pAdvertising = BLEDevice::getAdvertising();
@@ -304,8 +327,6 @@ void loop() {
     // Upload to Server 
     uploadDataToServer();
 
-    // Clear data 
-    clearCSVFile();
     pBLEScan->clearResults(); // Delete results to free memory
     currentTime = myTime;
   }
