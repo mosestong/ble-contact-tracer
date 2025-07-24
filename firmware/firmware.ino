@@ -75,7 +75,6 @@ void logDeviceToCSV(BLEAdvertisedDevice device) {
                   String(device.getAddress().toString().c_str()) + "," +
                   String(device.getRSSI()) + "," +
                   (device.haveName() ? device.getName().c_str() : "Unknown") + "," +
-                  serviceUUIDs + "," +
                   manufacturerDataStr + "\n";
   
   file.print(csvRow);
@@ -97,7 +96,7 @@ void clearCSVFile() {
     // Re-create file with headers
     File file = SPIFFS.open(csvFilePath, FILE_WRITE);
     if (file) {
-      file.println("timestamp,device_address,rssi,device_name,service_uuid,manufacturer_data");
+      file.println("timestamp,device_address,rssi,device_name,manufacturer_data");
       file.close();
       Serial.println("CSV file recreated with headers");
     } else {
@@ -219,7 +218,7 @@ void initializeCSVFile() {
   if (!SPIFFS.exists(csvFilePath)) {
     File file = SPIFFS.open(csvFilePath, FILE_WRITE);
     if (file) {
-      file.println("timestamp,device_address,rssi,device_name,service_uuid,manufacturer_data");
+      file.println("timestamp,device_address,rssi,device_name,manufacturer_data");
       file.close();
       Serial.println("CSV file created with header");
     } else {
