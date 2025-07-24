@@ -3,13 +3,16 @@ import socketserver
 import os
 from datetime import datetime
 
-PORT = 8080
+PORT = 8083
 UPLOAD_DIR = "uploads"
 
 # Ensure upload directory exists
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
+    """
+    Custom HTTP request handler to process POST requests for file uploads.
+    """
     def do_POST(self):
         content_length = int(self.headers.get('Content-Length', 0))
         if content_length == 0:
@@ -18,6 +21,7 @@ class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(b"No data received")
             return
 
+        # Read the POST data from the request
         post_data = self.rfile.read(content_length)
 
         # Generate filename based on timestamp
@@ -29,11 +33,13 @@ class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
 
         print(f"[+] Received {len(post_data)} bytes, saved to {filepath}")
         
+        # Respond to client with success
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"Data received and saved.")
 
 if __name__ == "__main__":
+    # Setup and start HTTP server
     handler = BLEUploadHandler
     with socketserver.TCPServer(("", PORT), handler) as httpd:
         print(f"[*] BLE Upload Server started on port {PORT}")
