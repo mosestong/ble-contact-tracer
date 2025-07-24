@@ -309,12 +309,6 @@ String randomize_manufacturer_data(){
 void loop() {
   myTime = millis();
   if(myTime - currentTime >= interval){
-    pAdvertising->stop();
-    String random_mfg = randomize_manufacturer_data();
-    adData.setManufacturerData(random_mfg);
-    pAdvertising->setAdvertisementData(adData);
-    pAdvertising->start();
-
     Serial.println("Scanning...");
     BLEScanResults* foundDevices = pBLEScan->start(scanTime, false);
     Serial.print("Devices found: ");
