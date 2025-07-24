@@ -7,7 +7,8 @@ import pandas as pd
 
 PORT = 8080
 UPLOAD_DIR = "uploads"
-exposure_df = pd.DataFrame(index=["peer_id"], columns=["start", "duration"])
+exposure_df = pd.DataFrame(columns=["peer_id", "start", "duration"])
+exposure_df.set_index('peer_id', inplace=True)
 
 # Ensure upload directory exists
 os.makedirs(UPLOAD_DIR, exist_ok=True)
