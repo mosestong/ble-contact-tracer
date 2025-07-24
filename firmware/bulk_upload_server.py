@@ -5,7 +5,7 @@ from io import BytesIO
 from datetime import datetime
 import pandas as pd
 
-PORT = 8083
+PORT = 8080
 UPLOAD_DIR = "uploads"
 exposure_df = pd.DataFrame(index=["peer_id"], columns=["start", "duration"])
 
@@ -26,8 +26,8 @@ class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
 
         # Read the POST data from the request
         post_data = self.rfile.read(content_length)
-        # data_log = pd.read_csv(BytesIO(post_data))
-        # track_contacts(data_log, exposure_df)
+        data_log = pd.read_csv(BytesIO(post_data))
+        track_contacts(data_log, exposure_df)
 
         # Generate filename based on timestamp
         filename = datetime.now().strftime("upload_%Y%m%d_%H%M%S.csv")
@@ -43,9 +43,17 @@ class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"Data received and saved.")
 
-# def track_contacts(contact_df: pd.DataFrame, exposure_df: pd.DataFrame):
-#     for (peer_id, timestamp, device_address, rssi, device_name, service_uuid, manufacturer_data) in contact_df.itertuples():
-#         print(peer_id, timestamp, device_address, rssi, device_name, service_uuid, manufacturer_data)
+        print(exposure_df)
+
+def track_contacts(contact_df: pd.DataFrame, exposure_df: pd.DataFrame):
+    for (peer_id, timestamp, device_address, rssi, device_name, service_uuid, manufacturer_data) in contact_df.itertuples():
+        print(peer_id, timestamp, device_address, rssi, device_name, service_uuid, manufacturer_data)
+
+        if not peer_id in exposure_df.index:
+            exposure_df.loc[peer_id, "start"] = timestamp
+            exposure_df.loc[peer_id, "duration"] = 0
+        else:
+            exposure_df[peer_id, "duration"] += (timestamp - exposure_df[peer_id, "start"])
 
 if __name__ == "__main__":
     # Setup and start HTTP server
