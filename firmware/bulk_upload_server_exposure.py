@@ -15,10 +15,10 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 if not os.path.exists(PROCESSED_DATA_FILE):
     with open(PROCESSED_DATA_FILE, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['timestamp', 'device_address', 'device_name', 'total_contact_minutes', 'status', 'alert_triggered'])
+        writer.writerow(['timestamp', 'manufacturer_data', 'device_name', 'total_contact_minutes', 'status', 'alert_triggered'])
 
 # Simple in-memory contact tracking
-contact_tracker = {}  # device_address -> {'first_seen': datetime, 'total_minutes': float}
+contact_tracker = {}  # manufacturer_data -> {'first_seen': datetime, 'total_minutes': float}
 EXPOSURE_THRESHOLD_MINUTES = 5
 
 def track_contacts(csv_data):
@@ -31,30 +31,30 @@ def track_contacts(csv_data):
         csv_reader = csv.DictReader(csv_data.splitlines())
         
         for row in csv_reader:
-            device_addr = row.get('device_address', '').strip()
+            manufacturer_data = row.get('manufacturer_data', '').strip()
             device_name = row.get('device_name', 'Unknown').strip()
             
-            if not device_addr:
+            if not manufacturer_data or manufacturer_data == 'None':
                 continue
                 
             # Track this contact
-            if device_addr not in contact_tracker:
+            if manufacturer_data not in contact_tracker:
                 # New contact
-                contact_tracker[device_addr] = {
+                contact_tracker[manufacturer_data] = {
                     'first_seen': current_time,
                     'last_seen': current_time,
                     'total_minutes': 0,
                     'device_name': device_name,
                     'alerted': False
                 }
-                print(f"[+] New contact: {device_addr} ({device_name})")
+                print(f"[+] New contact: {manufacturer_data} ({device_name})")
                 
                 # Save new contact to processed data file
-                save_contact_data(device_addr, device_name, 0, 'new_contact', False)
+                save_contact_data(manufacturer_data, device_name, 0, 'new_contact', False)
                 
             else:
                 # Update existing contact
-                contact = contact_tracker[device_addr]
+                contact = contact_tracker[manufacturer_data]
                 time_since_last = (current_time - contact['last_seen']).total_seconds() / 60
                 
                 # If less than 2 minutes since last contact, add to total time
@@ -66,42 +66,42 @@ def track_contacts(csv_data):
                 
                 # Check for exposure alert
                 if contact['total_minutes'] >= EXPOSURE_THRESHOLD_MINUTES and not contact['alerted']:
-                    print(f"EXPOSURE ALERT: {device_addr} ({device_name}) - {contact['total_minutes']:.2f} minutes of contact!")
+                    print(f"EXPOSURE ALERT: {manufacturer_data} ({device_name}) - {contact['total_minutes']:.2f} minutes of contact!")
                     contact['alerted'] = True
                     
                     # Save exposure alert to processed data file
-                    save_contact_data(device_addr, device_name, contact['total_minutes'], 'exposure_detected', True)
+                    save_contact_data(manufacturer_data, device_name, contact['total_minutes'], 'exposure_detected', True)
                 else:
                     # Save regular contact update
-                    save_contact_data(device_addr, device_name, contact['total_minutes'], 'contact_update', contact['alerted'])
+                    save_contact_data(manufacturer_data, device_name, contact['total_minutes'], 'contact_update', contact['alerted'])
         
         # Clean up old contacts (remove if not seen for 10 minutes)
         to_remove = []
-        for addr, contact in contact_tracker.items():
+        for mfg_data, contact in contact_tracker.items():
             minutes_since_last = (current_time - contact['last_seen']).total_seconds() / 60
             if minutes_since_last > 10:
-                to_remove.append(addr)
+                to_remove.append(mfg_data)
         
-        for addr in to_remove:
-            contact = contact_tracker[addr]
-            print(f"[+] Removing old contact: {addr}")
+        for mfg_data in to_remove:
+            contact = contact_tracker[mfg_data]
+            print(f"[+] Removing old contact: {mfg_data}")
             
             # Save contact removal to processed data file
-            save_contact_data(addr, contact['device_name'], contact['total_minutes'], 'contact_ended', contact['alerted'])
+            save_contact_data(mfg_data, contact['device_name'], contact['total_minutes'], 'contact_ended', contact['alerted'])
             
-            del contact_tracker[addr]
+            del contact_tracker[mfg_data]
             
     except Exception as e:
         print(f"[!] Error tracking contacts: {e}")
 
-def save_contact_data(device_addr, device_name, total_minutes, status, alert_triggered):
+def save_contact_data(manufacturer_data, device_name, total_minutes, status, alert_triggered):
     """Save processed contact data to separate CSV file"""
     try:
         with open(PROCESSED_DATA_FILE, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([
                 datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                device_addr,
+                manufacturer_data,
                 device_name,
                 round(total_minutes, 2),
                 status,
