@@ -4,10 +4,11 @@ import os
 from io import BytesIO
 from datetime import datetime
 import pandas as pd
+import time
 
 PORT = 8080
 UPLOAD_DIR = "uploads"
-exposure_df = pd.DataFrame(columns=["peer_id", "start", "duration"])
+exposure_df = pd.DataFrame(columns=["peer_id", "start", "last_rec", "duration"])
 exposure_df.set_index('peer_id', inplace=True)
 
 # Ensure upload directory exists
@@ -18,12 +19,17 @@ class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
     Custom HTTP request handler to process POST requests for file uploads.
     """
     def do_POST(self):
+        sent_time = int(self.headers.get("X-Timestamp"))
         content_length = int(self.headers.get('Content-Length', 0))
         if content_length == 0:
             self.send_response(400)
             self.end_headers()
             self.wfile.write(b"No data received")
             return
+        
+        # Assumes unix epoch time in seconds
+        if not sent_time is None:
+            print("Air time:", time.time() - sent_time)
 
         # Read the POST data from the request
         post_data = self.rfile.read(content_length)
@@ -47,14 +53,16 @@ class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
         print(exposure_df)
 
 def track_contacts(contact_df: pd.DataFrame, exposure_df: pd.DataFrame):
-    for (peer_id, timestamp, device_address, rssi, device_name, service_uuid, manufacturer_data) in contact_df.itertuples():
-        print(peer_id, timestamp, device_address, rssi, device_name, service_uuid, manufacturer_data)
+    for (index, timestamp, device_address, rssi, device_name, service_uuid) in contact_df.itertuples():
+        print(index, timestamp, device_address, rssi, device_name, service_uuid)
 
-        if not peer_id in exposure_df.index:
-            exposure_df.loc[peer_id, "start"] = timestamp
-            exposure_df.loc[peer_id, "duration"] = 0
+        if not device_address in exposure_df.index:
+            exposure_df.loc[device_address, "start"] = timestamp
+            exposure_df.loc[device_address, "last_rec"] = timestamp
+            exposure_df.loc[device_address, "duration"] = 0.0
         else:
-            exposure_df[peer_id, "duration"] += (timestamp - exposure_df[peer_id, "start"])
+            exposure_df.loc[device_address, "duration"] += (timestamp - exposure_df.loc[device_address, "last_rec"]) / 1000
+            exposure_df.loc[device_address, "last_rec"] = timestamp
 
 if __name__ == "__main__":
     # Setup and start HTTP server
