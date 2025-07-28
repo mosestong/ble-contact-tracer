@@ -7,6 +7,8 @@ from datetime import datetime
 PORT = 8081
 UPLOAD_DIR = "uploads"
 PROCESSED_DATA_FILE = "detected_contacts.csv"
+# Generate filename based on timestamp
+filename = datetime.now().strftime("upload_%Y%m%d_%H%M%S.csv")
 
 # Ensure upload directory exists
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -15,7 +17,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 if not os.path.exists(PROCESSED_DATA_FILE):
     with open(PROCESSED_DATA_FILE, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['timestamp', 'manufacturer_data', 'device_name', 'total_contact_minutes', 'status', 'alert_triggered'])
+        writer.writerow(['timestamp', 'sender_id', 'rssi', 'manufacturer_data', 'device_name', 'total_contact_minutes', 'status', 'alert_triggered'])
 
 # Simple in-memory contact tracking
 contact_tracker = {}  # manufacturer_data -> {'first_seen': datetime, 'total_minutes': float}
@@ -33,6 +35,8 @@ def track_contacts(csv_data):
         for row in csv_reader:
             manufacturer_data = row.get('manufacturer_data', '').strip()
             device_name = row.get('device_name', 'Unknown').strip()
+            sender_id = row.get('sender_id', 'Unknown').strip()
+            rssi = row.get('rssi', 'Unknown').strip()
             
             if not manufacturer_data or manufacturer_data == 'None':
                 continue
@@ -50,7 +54,7 @@ def track_contacts(csv_data):
                 print(f"[+] New contact: {manufacturer_data} ({device_name})")
                 
                 # Save new contact to processed data file
-                save_contact_data(manufacturer_data, device_name, 0, 'new_contact', False)
+                save_contact_data(manufacturer_data, device_name, 0, 'new_contact', False, sender_id, rssi)
                 
             else:
                 # Update existing contact
@@ -70,10 +74,10 @@ def track_contacts(csv_data):
                     contact['alerted'] = True
                     
                     # Save exposure alert to processed data file
-                    save_contact_data(manufacturer_data, device_name, contact['total_minutes'], 'exposure_detected', True)
+                    save_contact_data(manufacturer_data, device_name, contact['total_minutes'], 'exposure_detected', True, contact['sender_id'], contact['rssi'])
                 else:
                     # Save regular contact update
-                    save_contact_data(manufacturer_data, device_name, contact['total_minutes'], 'contact_update', contact['alerted'])
+                    save_contact_data(manufacturer_data, device_name, contact['total_minutes'], 'contact_update', contact['alerted'], contact['sender_id'], contact['rssi'])
         
         # Clean up old contacts (remove if not seen for 10 minutes)
         to_remove = []
@@ -87,20 +91,22 @@ def track_contacts(csv_data):
             print(f"[+] Removing old contact: {mfg_data}")
             
             # Save contact removal to processed data file
-            save_contact_data(mfg_data, contact['device_name'], contact['total_minutes'], 'contact_ended', contact['alerted'])
+            save_contact_data(mfg_data, contact['device_name'], contact['total_minutes'], 'contact_ended', contact['alerted'], contact['sender_id'], contact['rssi'])
             
             del contact_tracker[mfg_data]
             
     except Exception as e:
         print(f"[!] Error tracking contacts: {e}")
 
-def save_contact_data(manufacturer_data, device_name, total_minutes, status, alert_triggered):
+def save_contact_data(manufacturer_data, device_name, total_minutes, status, alert_triggered, sender_id,rssi):
     """Save processed contact data to separate CSV file"""
     try:
         with open(PROCESSED_DATA_FILE, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([
                 datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                sender_id,
+                rssi,
                 manufacturer_data,
                 device_name,
                 round(total_minutes, 2),
@@ -128,11 +134,10 @@ class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
         csv_data = post_data.decode('utf-8')
 
         # Generate filename based on timestamp
-        filename = datetime.now().strftime("upload_%Y%m%d_%H%M%S.csv")
         filepath = os.path.join(UPLOAD_DIR, filename)
 
         # Save raw upload
-        with open(filepath, "wb") as f:
+        with open(filepath, "a") as f:
             f.write(post_data)
 
         print(f"[+] Received {len(post_data)} bytes, saved to {filepath}")
@@ -147,6 +152,7 @@ class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     # Setup and start HTTP server
     handler = BLEUploadHandler
+    # Start the server
     with socketserver.TCPServer(("", PORT), handler) as httpd:
         print(f"[*] BLE Contact Tracker started on port {PORT}")
         print(f"[*] Exposure threshold: {EXPOSURE_THRESHOLD_MINUTES} minutes")
