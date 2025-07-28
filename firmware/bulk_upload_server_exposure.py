@@ -17,7 +17,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 if not os.path.exists(PROCESSED_DATA_FILE):
     with open(PROCESSED_DATA_FILE, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['timestamp', 'manufacturer_data', 'device_name', 'total_contact_minutes', 'status', 'alert_triggered'])
+        writer.writerow(['timestamp', 'sender_id', 'rssi', 'manufacturer_data', 'device_name', 'total_contact_minutes', 'status', 'alert_triggered'])
 
 # Simple in-memory contact tracking
 contact_tracker = {}  # manufacturer_data -> {'first_seen': datetime, 'total_minutes': float}
@@ -105,9 +105,9 @@ def save_contact_data(manufacturer_data, device_name, total_minutes, status, ale
             writer = csv.writer(f)
             writer.writerow([
                 datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                manufacturer_data,
                 sender_id,
                 rssi,
+                manufacturer_data,
                 device_name,
                 round(total_minutes, 2),
                 status,
