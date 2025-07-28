@@ -6,15 +6,16 @@
 #include "SPIFFS.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <time.h> // Add this include
 
 // Final Project
 
 // WiFi credentials
-const char* ssid = "TOBI 1440";
-const char* password = "=813j2G0";
+const char* ssid = "LAPTOP-9EBF657I 3346";
+const char* password = "1/bB6076";
 
 // Server endpoint
-const char* serverURL = "http://192.168.137.1:8081";
+const char* serverURL = "http://192.168.137.1:8080";
 
 // Generated UUIDs for the service and characteristics
 #define SERVICE_UUID "8bc7b016-7196-4f95-a33c-cc541b4509a9"
@@ -39,6 +40,10 @@ int logCount = 0;
 const int maxLogs = 5;
 const char* csvFilePath = "/data.csv";
 
+// Add NTP server info
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 0; // Set your timezone offset in seconds
+const int   daylightOffset_sec = 0; // Set daylight offset if needed
 
 
 void logDeviceToCSV(BLEAdvertisedDevice device) {
@@ -46,10 +51,10 @@ void logDeviceToCSV(BLEAdvertisedDevice device) {
   if (!file) {
     Serial.println("Failed to open file for writing");
     return;
-}
-  
-  // Get current timestamp (millis since boot)
-  unsigned long timestamp = millis();
+  }
+
+  // Get current Unix epoch timestamp
+  time_t timestamp = time(nullptr);
   
   // Get service UUIDs if available
   String serviceUUIDs = "None";
@@ -162,7 +167,11 @@ void uploadDataToServer() {
     Serial.println("Failed to connect to WiFi. Upload cancelled.");
     return;
   }
-  
+
+  // Sync time again if needed
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  time_t now = time(nullptr);
+
   // Read CSV file
   File file = SPIFFS.open(csvFilePath, FILE_READ);
   if (!file) {
@@ -190,7 +199,7 @@ void uploadDataToServer() {
   http.addHeader("User-Agent", "ESP32-BLE-ContactTracer/1.0");
   http.addHeader("X-Device-ID", String(ESP.getEfuseMac(), HEX));
   http.addHeader("X-Data-Type", "contact-trace");
-  http.addHeader("X-Timestamp", String(millis()));
+  http.addHeader("X-Timestamp", String(now)); // Use Unix epoch time here
   
   Serial.println("Sending " + String(csvData.length()) + " bytes of CSV data...");
   
@@ -255,6 +264,28 @@ void setup() {
   
   // Initialize CSV file
   initializeCSVFile();
+
+  // Connect to WiFi temporarily to get time
+  if (connectToWiFi()) {
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    Serial.println("Waiting for NTP time sync...");
+    time_t now = time(nullptr);
+    int retry = 0;
+    while (now < 1000000000 && retry < 30) { // Wait for valid epoch time
+      delay(500);
+      now = time(nullptr);
+      retry++;
+    }
+    if (now < 1000000000) {
+      Serial.println("Failed to get NTP time.");
+    } else {
+      Serial.print("Current epoch time: ");
+      Serial.println(now);
+    }
+    WiFi.disconnect();
+  } else {
+    Serial.println("Could not connect to WiFi for NTP sync.");
+  }
 
   // Generate device name
   String deviceName = "BLE Contact Tracer";
