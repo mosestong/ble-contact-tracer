@@ -137,7 +137,7 @@ class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
         filepath = os.path.join(UPLOAD_DIR, filename)
 
         # Save raw upload
-        with open(filepath, "a") as f:
+        with open(filepath, "ab") as f:
             f.write(post_data)
 
         print(f"[+] Received {len(post_data)} bytes, saved to {filepath}")
