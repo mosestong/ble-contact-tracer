@@ -227,8 +227,6 @@ void initializeCSVFile() {
   if (!SPIFFS.exists(csvFilePath)) {
     File file = SPIFFS.open(csvFilePath, FILE_WRITE);
     if (file) {
-      file.println("timestamp,device_address,rssi,device_name,manufacturer_data,sender_id");
-      file.close();
       Serial.println("CSV file created with header");
     } else {
       Serial.println("Failed to create CSV file");
