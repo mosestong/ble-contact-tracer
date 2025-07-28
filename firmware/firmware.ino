@@ -96,16 +96,6 @@ void logDeviceToCSV(BLEAdvertisedDevice device) {
 void clearCSVFile() {
   if (SPIFFS.remove(csvFilePath)) {
     Serial.println("CSV file cleared successfully");
-    
-    // Re-create file with headers
-    File file = SPIFFS.open(csvFilePath, FILE_WRITE);
-    if (file) {
-      file.println("timestamp,device_address,rssi,device_name,manufacturer_data,sender_id");
-      file.close();
-      Serial.println("CSV file recreated with headers");
-    } else {
-      Serial.println("Failed to recreate CSV file with headers");
-    }
   } else {
     Serial.println("Failed to clear CSV file");
   }
