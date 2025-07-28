@@ -1,0 +1,46 @@
+timestamp,sender_id,rssi,manufacturer_data,device_name,total_contact_minutes,status,alert_triggered,device_timestamp,delay
+2025-07-28 15:01:06,5DC1,-52,5ECB,BLE Contact Tracer,0,new_contact,False,2025-07-28 15:00:41,25.112923
+2025-07-28 15:01:16,5ECB,-49,5DC1,Unknown,0,new_contact,False,2025-07-28 15:00:54,22.557457
+2025-07-28 15:01:28,5DC1,-48,5ECB,BLE Contact Tracer,0.37,contact_update,False,2025-07-28 15:01:06,22.466409
+2025-07-28 15:01:38,5ECB,-49,5DC1,BLE Contact Tracer,0.37,contact_update,False,2025-07-28 15:01:16,22.98308
+2025-07-28 15:01:50,5DC1,-48,5ECB,BLE Contact Tracer,0.74,contact_update,False,2025-07-28 15:01:28,22.761153
+2025-07-28 15:02:08,5ECB,-48,5DC1,BLE Contact Tracer,0.86,contact_update,False,2025-07-28 15:01:39,29.305048
+2025-07-28 15:02:13,5DC1,-48,5ECB,Unknown,1.12,contact_update,False,2025-07-28 15:01:51,22.115893
+2025-07-28 15:02:33,5ECB,-61,5DC1,Unknown,1.29,contact_update,False,2025-07-28 15:02:08,25.70002
+2025-07-28 15:02:35,5DC1,-45,5ECB,Unknown,1.49,contact_update,False,2025-07-28 15:02:13,22.403836
+2025-07-28 15:02:55,5ECB,-46,5DC1,BLE Contact Tracer,1.66,contact_update,False,2025-07-28 15:02:33,22.986101
+2025-07-28 15:02:58,5DC1,-46,5ECB,BLE Contact Tracer,1.88,contact_update,False,2025-07-28 15:02:35,23.653611
+2025-07-28 15:03:35,5ECB,-49,5DC1,BLE Contact Tracer,2.31,contact_update,False,2025-07-28 15:02:56,39.203156
+2025-07-28 15:03:58,5ECB,-45,5DC1,BLE Contact Tracer,2.7,contact_update,False,2025-07-28 15:03:35,23.561854
+2025-07-28 15:04:07,5DC1,-47,5ECB,BLE Contact Tracer,3.02,contact_update,False,2025-07-28 15:02:58,69.053477
+2025-07-28 15:04:07,5DC1,-52,5ECB,Unknown,3.02,contact_update,False,2025-07-28 15:03:39,28.053477
+2025-07-28 15:04:21,5ECB,-49,5DC1,BLE Contact Tracer,3.09,contact_update,False,2025-07-28 15:03:58,23.792506
+2025-07-28 15:04:45,5ECB,-46,5DC1,BLE Contact Tracer,3.47,contact_update,False,2025-07-28 15:04:21,24.055539
+2025-07-28 15:04:45,5DC1,-47,5ECB,Unknown,3.66,contact_update,False,2025-07-28 15:04:07,38.563784
+2025-07-28 15:05:08,5ECB,-65,5DC1,Unknown,3.86,contact_update,False,2025-07-28 15:04:45,23.291936
+2025-07-28 15:05:08,5DC1,-48,5ECB,BLE Contact Tracer,4.04,contact_update,False,2025-07-28 15:04:45,23.802345
+2025-07-28 15:05:30,5ECB,-45,5DC1,BLE Contact Tracer,4.24,contact_update,False,2025-07-28 15:05:08,22.712522
+2025-07-28 15:05:31,5DC1,-44,5ECB,BLE Contact Tracer,4.42,contact_update,False,2025-07-28 15:05:09,22.152753
+2025-07-28 15:05:53,5DC1,-42,5ECB,BLE Contact Tracer,4.79,contact_update,False,2025-07-28 15:05:31,22.446849
+2025-07-28 15:05:56,5ECB,-47,5DC1,BLE Contact Tracer,4.66,contact_update,False,2025-07-28 15:05:30,26.109522
+2025-07-28 15:06:15,5DC1,-47,5ECB,Unknown,5.16,exposure_detected,True,2025-07-28 15:05:53,22.806743
+2025-07-28 15:06:18,5ECB,-49,5DC1,Unknown,5.03,exposure_detected,True,2025-07-28 15:05:56,22.460994
+2025-07-28 15:06:38,5DC1,-50,5ECB,BLE Contact Tracer,5.53,contact_update,True,2025-07-28 15:06:16,22.096168
+2025-07-28 15:06:40,5ECB,-45,5DC1,BLE Contact Tracer,5.41,contact_update,True,2025-07-28 15:06:18,22.874172
+2025-07-28 15:07:01,5DC1,-46,5ECB,BLE Contact Tracer,5.92,contact_update,True,2025-07-28 15:06:38,23.333509
+2025-07-28 15:07:03,5ECB,-47,5DC1,BLE Contact Tracer,5.78,contact_update,True,2025-07-28 15:06:41,22.176715
+2025-07-28 15:07:23,5DC1,-49,5ECB,Unknown,6.29,contact_update,True,2025-07-28 15:07:01,22.5517
+2025-07-28 15:07:27,5ECB,-48,5DC1,BLE Contact Tracer,6.18,contact_update,True,2025-07-28 15:07:03,24.542926
+2025-07-28 15:07:45,5DC1,-49,5ECB,Unknown,6.66,contact_update,True,2025-07-28 15:07:23,22.981942
+2025-07-28 15:07:49,5ECB,-46,5DC1,BLE Contact Tracer,6.56,contact_update,True,2025-07-28 15:07:27,22.973924
+2025-07-28 15:08:08,5DC1,-45,5ECB,BLE Contact Tracer,7.04,contact_update,True,2025-07-28 15:07:46,22.405999
+2025-07-28 15:08:12,5ECB,-46,5DC1,BLE Contact Tracer,6.93,contact_update,True,2025-07-28 15:07:50,22.196777
+2025-07-28 15:08:30,5DC1,-42,5ECB,BLE Contact Tracer,7.41,contact_update,True,2025-07-28 15:08:08,22.764111
+2025-07-28 15:08:35,5ECB,-50,5DC1,Unknown,7.31,contact_update,True,2025-07-28 15:08:12,23.450996
+2025-07-28 15:08:56,5DC1,-42,5ECB,BLE Contact Tracer,7.83,contact_update,True,2025-07-28 15:08:31,25.202945
+2025-07-28 15:08:57,5ECB,-49,5DC1,BLE Contact Tracer,7.69,contact_update,True,2025-07-28 15:08:35,22.8628
+2025-07-28 15:09:18,5DC1,-49,5ECB,Unknown,8.21,contact_update,True,2025-07-28 15:08:56,22.576241
+2025-07-28 15:09:20,5ECB,-48,5DC1,BLE Contact Tracer,8.06,contact_update,True,2025-07-28 15:08:58,22.299695
+2025-07-28 15:09:40,5DC1,-47,5ECB,BLE Contact Tracer,8.58,contact_update,True,2025-07-28 15:09:18,22.978933
+2025-07-28 15:09:42,5ECB,-50,5DC1,Unknown,8.43,contact_update,True,2025-07-28 15:09:20,22.640272
+2025-07-28 15:10:03,5DC1,-42,5ECB,Unknown,8.95,contact_update,True,2025-07-28 15:09:41,22.22271
