@@ -19,6 +19,13 @@ if not os.path.exists(PROCESSED_DATA_FILE):
         writer = csv.writer(f)
         writer.writerow(['timestamp', 'sender_id', 'rssi', 'manufacturer_data', 'device_name', 'total_contact_minutes', 'status', 'alert_triggered'])
 
+# Initialize processed data file with headers if it doesn't exist
+UPLOAD_FILE = UPLOAD_DIR+"/"+filename
+if not os.path.exists(UPLOAD_FILE):
+    with open(UPLOAD_FILE, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['timestamp','device_address','rssi','device_name','manufacturer_data','sender_id'])
+
 # Simple in-memory contact tracking
 contact_tracker = {}  # manufacturer_data -> {'first_seen': datetime, 'total_minutes': float}
 EXPOSURE_THRESHOLD_MINUTES = 5
@@ -28,9 +35,23 @@ def track_contacts(csv_data):
     Simple contact tracking function - tracks cumulative contact time,
     logs when devices reach 5+ minutes of exposure, and saves processed data
     """
+    print(f"[+] track_contacts started")
     try:
         current_time = datetime.now()
-        csv_reader = csv.DictReader(csv_data.splitlines())
+    
+        # Handle CSV data without headers by adding them
+        expected_headers = ['timestamp', 'device_address', 'rssi', 'device_name', 'manufacturer_data', 'sender_id']
+        
+        # Add headers if they don't exist
+        lines = csv_data.splitlines()
+        if lines and not any(line.startswith('timestamp') for line in lines):
+            # No headers found, add them
+            csv_data_with_headers = ','.join(expected_headers) + '\n' + csv_data
+            print(f"[DEBUG] Added headers to CSV data")
+        else:
+            csv_data_with_headers = csv_data
+            
+        csv_reader = csv.DictReader(csv_data_with_headers.splitlines())
         
         for row in csv_reader:
             manufacturer_data = row.get('manufacturer_data', '').strip()
@@ -49,6 +70,8 @@ def track_contacts(csv_data):
                     'last_seen': current_time,
                     'total_minutes': 0,
                     'device_name': device_name,
+                    'sender_id': sender_id,
+                    'rssi': rssi,
                     'alerted': False
                 }
                 print(f"[+] New contact: {manufacturer_data} ({device_name})")
@@ -67,6 +90,8 @@ def track_contacts(csv_data):
                 
                 contact['last_seen'] = current_time
                 contact['device_name'] = device_name
+                contact['sender_id'] = sender_id
+                contact['rssi'] = rssi
                 
                 # Check for exposure alert
                 if contact['total_minutes'] >= EXPOSURE_THRESHOLD_MINUTES and not contact['alerted']:
@@ -132,7 +157,6 @@ class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
         # Read the POST data from the request
         post_data = self.rfile.read(content_length)
         csv_data = post_data.decode('utf-8')
-
         # Generate filename based on timestamp
         filepath = os.path.join(UPLOAD_DIR, filename)
 
@@ -145,6 +169,8 @@ class BLEUploadHandler(http.server.SimpleHTTPRequestHandler):
         # Process contacts for tracking and save processed data separately
         track_contacts(csv_data)
         
+        print(f"[+] track contacts done")
+        print(f"[+] Processed data saved to {PROCESSED_DATA_FILE}")
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"Data received and saved.")
