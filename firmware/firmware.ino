@@ -45,6 +45,8 @@ const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 0; // Set your timezone offset in seconds
 const int   daylightOffset_sec = 0; // Set daylight offset if needed
 
+const time_t VALID_EPOCH_THRESHOLD = 1000000000;
+const int MAX_NTP_RETRIES = 30;
 
 void logDeviceToCSV(BLEAdvertisedDevice device) {
   File file = SPIFFS.open(csvFilePath, FILE_APPEND);
@@ -53,8 +55,7 @@ void logDeviceToCSV(BLEAdvertisedDevice device) {
     return;
   }
 
-  // Get current Unix epoch timestamp
-  time_t timestamp = time(nullptr);
+  time_t t = time(nullptr);  // captures the current time when a device is logged
   
   // Get service UUIDs if available
   String serviceUUIDs = "None";
@@ -76,7 +77,7 @@ void logDeviceToCSV(BLEAdvertisedDevice device) {
   }
   
   // Create CSV row: timestamp, device_address, rssi, name, service_uuid, manufacturer_data
-  String csvRow = String(timestamp) + "," + 
+  String csvRow = String(t) + "," + 
                   String(device.getAddress().toString().c_str()) + "," +
                   String(device.getRSSI()) + "," +
                   (device.haveName() ? device.getName().c_str() : "Unknown") + "," +
@@ -91,8 +92,6 @@ void logDeviceToCSV(BLEAdvertisedDevice device) {
   Serial.println("Manufacturer Data: " + manufacturerDataStr);
   
 }
-
-
 
 void clearCSVFile() {
   if (SPIFFS.remove(csvFilePath)) {
@@ -168,9 +167,9 @@ void uploadDataToServer() {
     return;
   }
 
-  // Sync time again if needed
+  // Sync time again
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  time_t now = time(nullptr);
+  time_t t = time(nullptr);
 
   // Read CSV file
   File file = SPIFFS.open(csvFilePath, FILE_READ);
@@ -199,7 +198,7 @@ void uploadDataToServer() {
   http.addHeader("User-Agent", "ESP32-BLE-ContactTracer/1.0");
   http.addHeader("X-Device-ID", String(ESP.getEfuseMac(), HEX));
   http.addHeader("X-Data-Type", "contact-trace");
-  http.addHeader("X-Timestamp", String(now)); // Use Unix epoch time here
+  http.addHeader("X-Timestamp", String(t)); // Use Unix epoch time here
   
   Serial.println("Sending " + String(csvData.length()) + " bytes of CSV data...");
   
@@ -269,18 +268,18 @@ void setup() {
   if (connectToWiFi()) {
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
     Serial.println("Waiting for NTP time sync...");
-    time_t now = time(nullptr);
+    time_t t = time(nullptr);
     int retry = 0;
-    while (now < 1000000000 && retry < 30) { // Wait for valid epoch time
+    while (t < VALID_EPOCH_THRESHOLD && retry < MAX_NTP_RETRIES) { // Wait for valid epoch time
       delay(500);
-      now = time(nullptr);
+      t = time(nullptr);
       retry++;
     }
-    if (now < 1000000000) {
+    if (t < VALID_EPOCH_THRESHOLD) {
       Serial.println("Failed to get NTP time.");
     } else {
       Serial.print("Current epoch time: ");
-      Serial.println(now);
+      Serial.println(t);
     }
     WiFi.disconnect();
   } else {
