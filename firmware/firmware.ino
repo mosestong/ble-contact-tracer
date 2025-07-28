@@ -33,7 +33,7 @@ uint8_t manufacturerData[2];
 int scanTime = 20; 
 int rssiThreshold = -70;
 String mfgData = ""; 
-
+String random_mfg = "";
 
 // Logging variables
 int logCount = 0;
@@ -69,7 +69,6 @@ void logDeviceToCSV(BLEAdvertisedDevice device) {
     String mfgData = device.getManufacturerData();
     manufacturerDataStr = "";
     for (int i = 0; i < mfgData.length(); i++) {
-      if (i > 0) manufacturerDataStr += ":";
       if ((uint8_t)mfgData[i] < 16) manufacturerDataStr += "0"; // Add leading zero for single hex digits
       manufacturerDataStr += String((uint8_t)mfgData[i], HEX);
     }
@@ -81,7 +80,8 @@ void logDeviceToCSV(BLEAdvertisedDevice device) {
                   String(device.getAddress().toString().c_str()) + "," +
                   String(device.getRSSI()) + "," +
                   (device.haveName() ? device.getName().c_str() : "Unknown") + "," +
-                  manufacturerDataStr + "\n";
+                  manufacturerDataStr + "," +
+                  random_mfg + "\n";
   
   file.print(csvRow);
   file.close();
@@ -100,7 +100,7 @@ void clearCSVFile() {
     // Re-create file with headers
     File file = SPIFFS.open(csvFilePath, FILE_WRITE);
     if (file) {
-      file.println("timestamp,device_address,rssi,device_name,manufacturer_data");
+      file.println("timestamp,device_address,rssi,device_name,manufacturer_data,sender_id");
       file.close();
       Serial.println("CSV file recreated with headers");
     } else {
@@ -226,7 +226,7 @@ void initializeCSVFile() {
   if (!SPIFFS.exists(csvFilePath)) {
     File file = SPIFFS.open(csvFilePath, FILE_WRITE);
     if (file) {
-      file.println("timestamp,device_address,rssi,device_name,manufacturer_data");
+      file.println("timestamp,device_address,rssi,device_name,manufacturer_data,sender_id");
       file.close();
       Serial.println("CSV file created with header");
     } else {
@@ -239,7 +239,7 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
   void onResult(BLEAdvertisedDevice advertisedDevice) {
     int rssi = advertisedDevice.getRSSI();
     BLEUUID found_service_UUID = advertisedDevice.getServiceUUID();
-    if (rssi > rssiThreshold and found_service_UUID.toString() == SERVICE_UUID) {
+    if (rssi > rssiThreshold) {
       Serial.print("Device found: ");
       Serial.println(advertisedDevice.toString().c_str());
       
@@ -305,10 +305,10 @@ void setup() {
   pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
 
-  String random_mfg = randomize_manufacturer_data();
+  random_mfg = randomize_manufacturer_data();
   // Set manufacturer data (0x4C00 is Apple's company ID - use for testing)
   adData = BLEAdvertisementData();
-  adData.setManufacturerData(random_mfg);
+  adData.setManufacturerData(random_mfg); 
   pAdvertising->setAdvertisementData(adData);
 
   pAdvertising->start();
