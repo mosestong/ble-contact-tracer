@@ -74,6 +74,17 @@ void logDeviceToCSV(BLEAdvertisedDevice device) {
     }
     manufacturerDataStr.toUpperCase(); // Convert to uppercase for consistency
   }
+
+  String manufacturerSenderID = "None";
+  
+    String mfgData = random_mfg;
+    manufacturerSenderID = "";
+    for (int i = 0; i < mfgData.length(); i++) {
+      if ((uint8_t)mfgData[i] < 16) manufacturerSenderID += "0"; // Add leading zero for single hex digits
+      manufacturerSenderID += String((uint8_t)mfgData[i], HEX);
+    }
+    manufacturerSenderID.toUpperCase(); // Convert to uppercase for consistency
+  
   
   // Create CSV row: timestamp, device_address, rssi, name, service_uuid, manufacturer_data
   String csvRow = String(t) + "," + 
@@ -81,7 +92,7 @@ void logDeviceToCSV(BLEAdvertisedDevice device) {
                   String(device.getRSSI()) + "," +
                   (device.haveName() ? device.getName().c_str() : "Unknown") + "," +
                   manufacturerDataStr + "," +
-                  random_mfg + "\n";
+                   manufacturerSenderID +  "\n";
   
   file.print(csvRow);
   file.close();
@@ -293,7 +304,7 @@ void setup() {
   pAdvertising = BLEDevice::getAdvertising();
 
 
-  String random_mfg = randomize_manufacturer_data();
+  random_mfg = randomize_manufacturer_data();
   adData = BLEAdvertisementData();
   adData.setCompleteServices(BLEUUID(SERVICE_UUID)); // <-- Add service UUID to advertisement
   adData.setManufacturerData(random_mfg);
