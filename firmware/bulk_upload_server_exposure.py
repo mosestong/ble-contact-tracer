@@ -17,7 +17,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 if not os.path.exists(PROCESSED_DATA_FILE):
     with open(PROCESSED_DATA_FILE, 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(['timestamp', 'sender_id', 'rssi', 'manufacturer_data', 'device_name', 'total_contact_minutes', 'status', 'alert_triggered'])
+        writer.writerow(['server_timestamp','device_timestamp', 'delay', 'sender_id', 'rssi', 'manufacturer_data', 'device_name', 'total_contact_minutes', 'status', 'alert_triggered'])
 
 # Initialize processed data file with headers if it doesn't exist
 UPLOAD_FILE = UPLOAD_DIR+"/"+filename
@@ -59,6 +59,16 @@ def track_contacts(csv_data):
             sender_id = row.get('sender_id', 'Unknown').strip()
             rssi = row.get('rssi', 'Unknown').strip()
             
+            device_epoch_time = row.get('timestamp', 'Unknown').strip()
+            try:
+                device_timestamp = datetime.fromtimestamp(int(device_epoch_time))
+                delay = (current_time - device_timestamp).total_seconds()
+            except (ValueError, TypeError) as e:
+                print(f"[!] Error parsing timestamp '{device_epoch_time}': {e}")
+                # Use current time as fallback
+                device_timestamp = current_time
+                delay = 0
+            
             if not manufacturer_data or manufacturer_data == 'None':
                 continue
                 
@@ -77,7 +87,7 @@ def track_contacts(csv_data):
                 print(f"[+] New contact: {manufacturer_data} ({device_name})")
                 
                 # Save new contact to processed data file
-                save_contact_data(manufacturer_data, device_name, 0, 'new_contact', False, sender_id, rssi)
+                save_contact_data(current_time, device_timestamp, delay, sender_id, rssi, manufacturer_data, device_name, 0, 'new_contact', False)
                 
             else:
                 # Update existing contact
@@ -99,10 +109,10 @@ def track_contacts(csv_data):
                     contact['alerted'] = True
                     
                     # Save exposure alert to processed data file
-                    save_contact_data(manufacturer_data, device_name, contact['total_minutes'], 'exposure_detected', True, contact['sender_id'], contact['rssi'])
+                    save_contact_data(current_time, device_timestamp, delay, contact['sender_id'], contact['rssi'], manufacturer_data, device_name, contact['total_minutes'], 'exposure_detected', True)
                 else:
                     # Save regular contact update
-                    save_contact_data(manufacturer_data, device_name, contact['total_minutes'], 'contact_update', contact['alerted'], contact['sender_id'], contact['rssi'])
+                    save_contact_data(current_time, device_timestamp, delay, contact['sender_id'], contact['rssi'], manufacturer_data, device_name, contact['total_minutes'], 'contact_update', contact['alerted'])
         
         # Clean up old contacts (remove if not seen for 10 minutes)
         to_remove = []
@@ -116,27 +126,29 @@ def track_contacts(csv_data):
             print(f"[+] Removing old contact: {mfg_data}")
             
             # Save contact removal to processed data file
-            save_contact_data(mfg_data, contact['device_name'], contact['total_minutes'], 'contact_ended', contact['alerted'], contact['sender_id'], contact['rssi'])
+            save_contact_data(current_time, device_timestamp, delay, contact['sender_id'], contact['rssi'], mfg_data, contact['device_name'], contact['total_minutes'], 'contact_ended', contact['alerted'])
             
             del contact_tracker[mfg_data]
             
     except Exception as e:
         print(f"[!] Error tracking contacts: {e}")
 
-def save_contact_data(manufacturer_data, device_name, total_minutes, status, alert_triggered, sender_id,rssi):
+def save_contact_data(current_time, device_timestamp, delay, sender_id,rssi, manufacturer_data, device_name, total_minutes, status, alert_triggered):
     """Save processed contact data to separate CSV file"""
     try:
         with open(PROCESSED_DATA_FILE, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([
-                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                current_time.strftime('%Y-%m-%d %H:%M:%S'),
+                device_timestamp,
+                delay,
                 sender_id,
                 rssi,
                 manufacturer_data,
                 device_name,
                 round(total_minutes, 2),
                 status,
-                alert_triggered
+                alert_triggered,
             ])
     except Exception as e:
         print(f"[!] Error saving processed data: {e}")
