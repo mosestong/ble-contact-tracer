@@ -11,11 +11,11 @@
 // Final Project
 
 // WiFi credentials
-const char* ssid = "LAPTOP-9EBF657I 3346";
-const char* password = "1/bB6076";
+const char* ssid = "TOBI 1440";
+const char* password = "=813j2G0";
 
 // Server endpoint
-const char* serverURL = "http://192.168.137.1:8080";
+const char* serverURL = "http://192.168.137.1:8081";
 
 // Generated UUIDs for the service and characteristics
 #define SERVICE_UUID "8bc7b016-7196-4f95-a33c-cc541b4509a9"
@@ -229,7 +229,7 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
   void onResult(BLEAdvertisedDevice advertisedDevice) {
     int rssi = advertisedDevice.getRSSI();
     BLEUUID found_service_UUID = advertisedDevice.getServiceUUID();
-    if (rssi > rssiThreshold) {
+    if (rssi > rssiThreshold and found_service_UUID.toString() == SERVICE_UUID) {
       Serial.print("Device found: ");
       Serial.println(advertisedDevice.toString().c_str());
       
@@ -288,17 +288,15 @@ void setup() {
   // Create the service
   BLEService* pService = pServer->createService(SERVICE_UUID);
   
-  // Start the service
-  pService->start();
 
   // Start advertising
   pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
 
-  random_mfg = randomize_manufacturer_data();
-  // Set manufacturer data (0x4C00 is Apple's company ID - use for testing)
+
+  String random_mfg = randomize_manufacturer_data();
   adData = BLEAdvertisementData();
-  adData.setManufacturerData(random_mfg); 
+  adData.setCompleteServices(BLEUUID(SERVICE_UUID)); // <-- Add service UUID to advertisement
+  adData.setManufacturerData(random_mfg);
   pAdvertising->setAdvertisementData(adData);
 
   pAdvertising->start();
@@ -309,6 +307,8 @@ void setup() {
   pBLEScan->setActiveScan(true); // Active scan retrieves more data, but uses more power
   pBLEScan->setInterval(100);
   pBLEScan->setWindow(99);  // Window <= Interval
+  // Start the service
+  pService->start();
 
   currentTime = millis();
 }
