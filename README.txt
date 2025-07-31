@@ -31,8 +31,8 @@ Software dependencies:
 
 Execution Instructions:
 - 
-requirements:
-pip install ipykernel for running jupyter notebook with virtualenv
+
+Install python dependencies using pip install -r requirements.txt
 
 Reproduction guide:
 - Testing Environment:
