@@ -227,8 +227,6 @@ void initializeCSVFile() {
   if (!SPIFFS.exists(csvFilePath)) {
     File file = SPIFFS.open(csvFilePath, FILE_WRITE);
     if (file) {
-      file.println("timestamp,device_address,rssi,device_name,manufacturer_data,sender_id");
-      file.close();
       Serial.println("CSV file created with header");
     } else {
       Serial.println("Failed to create CSV file");
@@ -251,7 +249,6 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
 };
 
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("Starting BLE Contact Tracer...");
 
@@ -271,11 +268,15 @@ void setup() {
     Serial.println("Waiting for NTP time sync...");
     time_t t = time(nullptr);
     int retry = 0;
-    while (t < VALID_EPOCH_THRESHOLD && retry < MAX_NTP_RETRIES) { // Wait for valid epoch time
+
+    // Wait for valid epoch time
+    while (t < VALID_EPOCH_THRESHOLD && retry < MAX_NTP_RETRIES) {
       delay(500);
       t = time(nullptr);
       retry++;
     }
+
+    // If NTP time is not gotten, log error
     if (t < VALID_EPOCH_THRESHOLD) {
       Serial.println("Failed to get NTP time.");
     } else {
@@ -287,10 +288,8 @@ void setup() {
     Serial.println("Could not connect to WiFi for NTP sync.");
   }
 
-  // Generate device name
-  String deviceName = "BLE Contact Tracer";
-
   // Initialize BLE
+  String deviceName = "BLE Contact Tracer";
   BLEDevice::init(deviceName.c_str());
 
   // Create BLE Server
@@ -299,25 +298,25 @@ void setup() {
   // Create the service
   BLEService* pService = pServer->createService(SERVICE_UUID);
   
-
   // Start advertising
   pAdvertising = BLEDevice::getAdvertising();
 
 
   random_mfg = randomize_manufacturer_data();
   adData = BLEAdvertisementData();
-  adData.setCompleteServices(BLEUUID(SERVICE_UUID)); // <-- Add service UUID to advertisement
+  adData.setCompleteServices(BLEUUID(SERVICE_UUID));
   adData.setManufacturerData(random_mfg);
   pAdvertising->setAdvertisementData(adData);
 
   pAdvertising->start();
   Serial.println("BLE Advertisement started!");
 
-  pBLEScan = BLEDevice::getScan(); // Create BLE scan object
+  pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
-  pBLEScan->setActiveScan(true); // Active scan retrieves more data, but uses more power
+  pBLEScan->setActiveScan(true);
   pBLEScan->setInterval(100);
-  pBLEScan->setWindow(99);  // Window <= Interval
+  pBLEScan->setWindow(99);
+
   // Start the service
   pService->start();
 
@@ -329,7 +328,7 @@ String randomize_manufacturer_data(){
     manufacturerData[0] = random(0, 256);
     manufacturerData[1] = random(0, 256);
 
-    //clear mfgData
+    //reset data before setting new value
     mfgData = "";
     mfgData += (char)manufacturerData[0];
     mfgData += (char)manufacturerData[1];
@@ -345,13 +344,15 @@ void loop() {
     Serial.print("Devices found: ");
     Serial.println(foundDevices->getCount());
     Serial.println("Scan done!");
-      // Print current CSV file contents
+
+    // Print current CSV file contents
     printCSVContents();
     
     // Upload to Server 
     uploadDataToServer();
 
-    pBLEScan->clearResults(); // Delete results to free memory
+    // Delete results to free memory
+    pBLEScan->clearResults(); 
     currentTime = myTime;
   }
 
