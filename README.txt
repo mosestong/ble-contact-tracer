@@ -11,8 +11,11 @@ Team Members:
 Project choice (P1):
 - We chose project P1 because the Contact Tracer application seemed more generally applicable than the Peer-Messaging LoRaWAN service. Since our group members were more interested in this project, we felt it would be easier to work on together.
 
-Work Distribution:
-  -
+Work Distribution: (Everyone worked on this equally)
+  - Branden: Worked on report, debugging, C++ testing, coded peer ID system, energy profiling, distance/rssi data collection.
+  - Tyler: Worked on report, debugging, initial HTTP server and iterations, python plots, distance/rssi data collection, statistics aggregation.
+  - Tobi: Worked on report, debugging, created data structure for contact tracer, worked on HTTP server, general contact tracer architecture.
+  - Moses: Worked on report, debugging, initial statistics code, energy profiling, data collection, general contact tracer architecture.
 
 File Structure:
 - README.txt: This file. Used to give general information about the project, and steps to use or deploy the project.
