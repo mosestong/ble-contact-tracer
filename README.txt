@@ -1,5 +1,5 @@
 Final Project - P1: BLE Contact Tracer with Exposure Logic and Energy Budget
-Group XX: 09
+Group 09
 Track: Undergraduate
 
 Team Members:
@@ -103,12 +103,6 @@ System Operation:
 - Data is uploaded to the server every 10 seconds when WiFi is available
 - The server tracks cumulative contact time and triggers exposure alerts at 5+ minutes
 - All data is timestamped and stored for analysis
-
-requirements:
-pip install ipykernel for running jupyter notebook with virtualenv
-- 
-
-Install python dependencies using pip install -r requirements.txt
 
 Reproduction guide:
 - Testing Environment:
