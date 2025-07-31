@@ -11,15 +11,15 @@
 // Final Project
 
 // WiFi credentials
-const char* ssid = "TOBI 1440";
-const char* password = "=813j2G0";
+// Enter your WiFi credentials here
+const char* ssid = "";
+const char* password = "";
 
-// Server endpoint
-const char* serverURL = "http://192.168.137.1:8081";
+/// Enter your server IP or URL here
+const char* serverURL = "";
 
 // Generated UUIDs for the service and characteristics
 #define SERVICE_UUID "8bc7b016-7196-4f95-a33c-cc541b4509a9"
-
 
 BLEScan* pBLEScan;
 BLEAdvertisementData adData;
