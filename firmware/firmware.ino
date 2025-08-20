@@ -6,9 +6,7 @@
 #include "SPIFFS.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <time.h> // Add this include
-
-// Final Project
+#include <time.h>
 
 // WiFi credentials
 // Enter your WiFi credentials here
